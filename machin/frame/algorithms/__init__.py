@@ -11,6 +11,7 @@ from .td3 import TD3
 from .ddpg_per import DDPGPer
 
 from .a2c import A2C
+from .a2c_sil import A2C_SIL
 from .ppo import PPO
 from .trpo import TRPO
 from .sac import SAC
@@ -36,6 +37,7 @@ __all__ = [
     "TD3",
     "DDPGPer",
     "A2C",
+    "A2C_SIL",
     "A3C",
     "PPO",
     "TRPO",

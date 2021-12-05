@@ -1,4 +1,4 @@
-from machin.frame.algorithms import A2C
+from machin.frame.algorithms import A2C_SIL
 from machin.utils.logging import default_logger as logger
 from torch.distributions import Categorical
 import torch as t
@@ -28,13 +28,13 @@ class Actor(nn.Module):
     def __init__(self, state_dim, action_num):
         super().__init__()
 
-        self.fc1 = nn.Linear(state_dim, 16)
-        self.fc2 = nn.Linear(16, 16)
-        self.fc3 = nn.Linear(16, action_num)
+        self.fc1 = nn.Linear(state_dim, 32)
+        self.fc2 = nn.Linear(32, 32)
+        self.fc3 = nn.Linear(32, action_num)
 
     def forward(self, state, action=None):
-        a = t.relu(self.fc1(state))
-        a = t.relu(self.fc2(a))
+        a = t.selu(self.fc1(state))
+        a = t.selu(self.fc2(a))
         probs = t.softmax(self.fc3(a), dim=1)
         dist = Categorical(probs=probs)
         act = action if action is not None else dist.sample()
@@ -47,13 +47,13 @@ class Critic(nn.Module):
     def __init__(self, state_dim):
         super().__init__()
 
-        self.fc1 = nn.Linear(state_dim, 16)
-        self.fc2 = nn.Linear(16, 16)
-        self.fc3 = nn.Linear(16, 1)
+        self.fc1 = nn.Linear(state_dim, 32)
+        self.fc2 = nn.Linear(32, 32)
+        self.fc3 = nn.Linear(32, 1)
 
     def forward(self, state):
-        v = t.relu(self.fc1(state))
-        v = t.relu(self.fc2(v))
+        v = t.selu(self.fc1(state))
+        v = t.selu(self.fc2(v))
         v = self.fc3(v)
         return v
 
@@ -62,7 +62,9 @@ if __name__ == "__main__":
     actor = Actor(observe_dim, action_num)
     critic = Critic(observe_dim)
 
-    a2c = A2C(actor, critic, t.optim.Adam, nn.MSELoss(reduction="sum"))
+    a2c_sil = A2C_SIL(actor, critic, t.optim.Adam, nn.MSELoss(reduction="sum"), actor_learning_rate=0.0007,
+                      critic_learning_rate=0.0007, entropy_weight=0.01, sil_update_times=4, sil_actor_loss_weight=1,
+                      sil_value_loss_weight=0.01, normalize_advantage=True)
 
     episode, step, reward_fulfilled = 0, 0, 0
     smoothed_total_reward = 0
@@ -80,7 +82,7 @@ if __name__ == "__main__":
             with t.no_grad():
                 old_state = state
                 # agent model inference
-                action = a2c.act({"state": old_state})[0]
+                action = a2c_sil.act({"state": old_state})[0]
                 state, reward, terminal, _ = env.step(action.item())
                 state = t.tensor(state, dtype=t.float32).view(1, observe_dim)
                 total_reward += reward
@@ -96,8 +98,10 @@ if __name__ == "__main__":
                 )
 
         # update
-        a2c.store_episode(tmp_observations)
-        a2c.update()
+        a2c_sil.store_episode(tmp_observations)
+        a2c_sil.store_episode_sil(tmp_observations)
+        a2c_sil.update()
+        a2c_sil.update_sil()
 
         # show reward
         smoothed_total_reward = smoothed_total_reward * 0.9 + total_reward * 0.1
