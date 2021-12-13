@@ -312,6 +312,9 @@ class A2C(TorchFramework):
                     + gae_delta
                 )
 
+        if len(episode) == 1:
+            episode = deepcopy(episode * 2)
+
         self.replay_buffer.store_episode(
             episode,
             required_attrs=(
@@ -340,19 +343,26 @@ class A2C(TorchFramework):
         Returns:
             mean value of estimated policy value, value loss
         """
+        #
+        # print("A2C update")
+
         sum_act_loss = 0
         sum_value_loss = 0
         self.actor.train()
         self.critic.train()
         for _ in range(self.actor_update_times):
             # sample a batch
-            batch_size, (state, action, advantage) = self.replay_buffer.sample_batch(
+            batch_size, (state, action, target_value, advantage_pre) = self.replay_buffer.sample_batch(
                 self.batch_size,
                 sample_method="random_unique",
                 concatenate=concatenate_samples,
-                sample_attrs=["state", "action", "gae"],
-                additional_concat_custom_attrs=["gae"],
+                sample_attrs=["state", "action", "value", "gae"],
+                additional_concat_custom_attrs=["value", "gae"],
             )
+
+            with t.no_grad():
+                value = self._criticize(state)
+                advantage = target_value - value
 
             # normalize advantage
             if self.normalize_advantage:
@@ -396,6 +406,7 @@ class A2C(TorchFramework):
                 sample_attrs=["state", "value"],
                 additional_concat_custom_attrs=["value"],
             )
+
             # calculate value loss
             value = self._criticize(state)
             value_loss = (

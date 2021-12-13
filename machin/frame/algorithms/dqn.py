@@ -278,7 +278,6 @@ edu/class/psych209/Readings/MnihEtAlHassibis15NatureControlDeepRL.pdf>`__ essay.
 
         action_dim = result.shape[1]
         result = t.argmax(result, dim=1).view(-1, 1)
-
         if t.rand([1]).item() < self.epsilon:
             result = t.randint(0, action_dim, [result.shape[0], 1])
 

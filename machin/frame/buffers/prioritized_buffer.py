@@ -394,6 +394,24 @@ class PrioritizedBuffer(Buffer):
         )
         return len(batch), result, index, is_weight
 
+    def sample_all_v2(
+        self,
+        batch_size: int,
+        concatenate: bool = True,
+        device: Union[str, t.device] = "cpu",
+        sample_attrs: List[str] = None,
+        additional_concat_custom_attrs: List[str] = None,
+        *_,
+        **__,
+    ):
+
+        batch_size, batch = self.sample_method_all(self)
+
+        result = self.post_process_batch(batch, device, concatenate, sample_attrs, additional_concat_custom_attrs)
+
+        return batch_size, result, None, None
+
+
     def sample_index_and_weight(self, batch_size: int, all_weight_sum: float = None):
         """
         Sample index of experience entries by priority, and return their importance

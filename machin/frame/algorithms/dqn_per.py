@@ -1,3 +1,5 @@
+import os
+
 from machin.frame.buffers.prioritized_buffer import PrioritizedBuffer
 from machin.utils.logging import default_logger
 
@@ -70,6 +72,7 @@ class DQNPer(DQN):
             visualize=visualize,
             visualize_dir=visualize_dir,
         )
+
         # reduction must be None
         if not hasattr(self.criterion, "reduction"):
             raise RuntimeError(

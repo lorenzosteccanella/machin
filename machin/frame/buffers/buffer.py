@@ -234,6 +234,8 @@ class Buffer:
         batch_handles = random.sample(
             list(self.transition_episode_number.keys()), k=batch_size
         )
+        # print(self.size())
+        # print(batch_handles)
         batch = [self.storage[bh] for bh in batch_handles]
         return batch_size, batch
 
