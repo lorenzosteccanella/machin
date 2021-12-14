@@ -31,9 +31,9 @@ class Actor(nn.Module):
     def __init__(self, state_dim, action_num):
         super().__init__()
 
-        self.fc1 = nn.Linear(state_dim, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, action_num)
+        self.fc1 = nn.Linear(state_dim, 32)
+        self.fc2 = nn.Linear(32, 32)
+        self.fc3 = nn.Linear(32, action_num)
 
     def forward(self, state, action=None):
         a = t.selu(self.fc1(state))
@@ -50,9 +50,9 @@ class Critic(nn.Module):
     def __init__(self, state_dim):
         super().__init__()
 
-        self.fc1 = nn.Linear(state_dim, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, 1)
+        self.fc1 = nn.Linear(state_dim, 32)
+        self.fc2 = nn.Linear(32, 32)
+        self.fc3 = nn.Linear(32, 1)
 
     def forward(self, state):
         v = t.selu(self.fc1(state))
@@ -67,9 +67,9 @@ if __name__ == "__main__":
 
     a2c_sil = A2C_SIL(actor, critic, t.optim.Adam, nn.MSELoss(reduction="sum"), actor_learning_rate=0.0007,
                       critic_learning_rate=0.0007, entropy_weight=0.01, sil_update_times=4, sil_actor_loss_weight=1,
-                      sil_value_loss_weight=0.01, normalize_advantage=False, actor_update_times=1, critic_update_times=2,
-                      discount=0.95, replay_buffer_sil=PrioritizedBuffer(500000, "cpu", beta=0.1), value_weight=0.5,
-                      gradient_max=1, sil_batch_size=256)
+                      sil_value_loss_weight=0.01, normalize_advantage=False, actor_update_times=1,
+                      critic_update_times=2, discount=0.95, replay_buffer_sil=PrioritizedBuffer(500000, "cpu", beta=0.1),
+                      value_weight=0.5, sil_batch_size=512)
 
     episode, step, reward_fulfilled = 0, 0, 0
     smoothed_total_reward = 0
@@ -91,6 +91,7 @@ if __name__ == "__main__":
                 action = a2c_sil.act({"state": old_state})[0]
                 state, reward, terminal, _ = env.step(action)
                 state = t.tensor(state["pos"], dtype=t.float32).view(1, observe_dim)
+                #env.render()
                 total_reward += reward
                 #print((episode-1)*1000 + step, reward, smoothed_total_reward)
                 tmp_observations.append(

@@ -38,7 +38,6 @@ class A2C_SIL(A2C):
         sil_value_loss_weight: float = 0.01,
         sil_update_times: int=4,
         sil_batch_size: int = 512,
-        normalize_advantage_sil = True,
         visualize: bool = False,
         visualize_dir: str = "",
         **__
@@ -84,7 +83,6 @@ class A2C_SIL(A2C):
         self.sil_value_loss_weight = sil_value_loss_weight
         self.sil_batch_size = sil_batch_size
         self.sil_update_times = sil_update_times
-        self.normalize_advantage_sil = normalize_advantage_sil
 
     def update_sil(self, **__):
         """
@@ -116,12 +114,10 @@ class A2C_SIL(A2C):
                 with t.no_grad():
                     value = self._criticize(state)
                     sil_advantage = target_value - value
-                    sil_advantage = sil_advantage
                     sil_advantage[sil_advantage < 0] = 0
-
-                # normalize sil advantage
-                if self.normalize_advantage_sil:
-                    sil_advantage = (sil_advantage - sil_advantage.mean()) / (sil_advantage.std() + 1e-6)
+                    # normalize sil advantage
+                    if self.normalize_advantage:
+                        sil_advantage = (sil_advantage - sil_advantage.mean()) / (sil_advantage.std() + 1e-6)
 
                 act_policy_loss = -(action_log_prob * sil_advantage.type_as(action_log_prob))
                 act_policy_loss = act_policy_loss * t.from_numpy(is_weight).view([batch_size, 1])

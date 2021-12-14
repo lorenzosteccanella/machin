@@ -382,7 +382,8 @@ class A2C(TorchFramework):
             act_policy_loss = -(action_log_prob * advantage.type_as(action_log_prob))
 
             if new_action_entropy is not None:
-                act_policy_loss += self.entropy_weight * new_action_entropy.mean()
+                act_policy_loss -= self.entropy_weight * new_action_entropy.mean()
+
 
             act_policy_loss = act_policy_loss.mean()
             sum_act_loss += act_policy_loss.item()
