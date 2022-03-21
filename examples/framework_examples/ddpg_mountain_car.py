@@ -5,15 +5,15 @@ import torch.nn as nn
 import gym
 
 # configurations
-env = gym.make("Pendulum-v0")
-observe_dim = 3
+env = gym.make("MountainCarContinuous-v0")
+observe_dim = 2
 action_dim = 1
-action_range = 2
+action_range = 1
 max_episodes = 1000
 max_steps = 200
 noise_param = (0, 0.2)
 noise_mode = "normal"
-solved_reward = -150
+solved_reward = 0
 solved_repeat = 5
 
 
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     )
 
     episode, step, reward_fulfilled = 0, 0, 0
-    smoothed_total_reward = 0
+    smoothed_total_reward = -200
 
     while episode < max_episodes:
         episode += 1
@@ -82,15 +82,16 @@ if __name__ == "__main__":
                 )
                 env.render()
                 state, reward, terminal, _ = env.step(action.numpy())
+                print(reward)
                 state = t.tensor(state, dtype=t.float32).view(1, observe_dim)
-                total_reward += reward[0]
+                total_reward += reward
 
                 tmp_observations.append(
                     {
                         "state": {"state": old_state},
                         "action": {"action": action},
                         "next_state": {"state": state},
-                        "reward": reward[0],
+                        "reward": reward,
                         "terminal": terminal or step == max_steps,
                     }
                 )

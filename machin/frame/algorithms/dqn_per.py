@@ -104,7 +104,6 @@ class DQNPer(DQN):
             concatenate_samples,
             sample_attrs=["state", "action", "reward", "next_state", "terminal", "*"],
         )
-
         with t.no_grad():
             next_q_value = self._criticize(next_state)
             target_next_q_value = self._criticize(next_state, True)

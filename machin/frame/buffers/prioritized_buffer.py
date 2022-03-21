@@ -432,9 +432,8 @@ class PrioritizedBuffer(Buffer):
             rand_priority, 0, max(self.wt_tree.get_weight_sum() - 1e-6, 0)
         )
         index = self.wt_tree.find_leaf_index(rand_priority)
-
+        index = list(map(int, index))                        # WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING Why I had to do this?
         priority = self.wt_tree.get_leaf_weight(index)
-
         # calculate importance sampling weight
         all_weight_sum = all_weight_sum or self.wt_tree.get_weight_sum()
         sample_probability = priority / all_weight_sum

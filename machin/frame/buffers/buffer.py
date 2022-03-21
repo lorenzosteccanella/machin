@@ -221,6 +221,106 @@ class Buffer:
             ),
         )
 
+    def sample_random_unique_batch(
+        self,
+        batch_size: int,
+        concatenate: bool = True,
+        device: Union[str, t.device] = "cpu",
+        sample_method: Union[
+            Callable[["Buffer", int], Tuple[List[Any], int]], str
+        ] = "random_unique",
+        sample_attrs: List[str] = None,
+        additional_concat_custom_attrs: List[str] = None,
+        *_,
+        **__,
+    ) -> Tuple[int, Union[None, tuple]]:
+        """
+        Sample a random batch from buffer, and perform concatenation.
+
+        See Also:
+            Default sample methods are defined as instance methods.
+
+            :meth:`.Buffer.sample_method_random_unique`
+
+            :meth:`.Buffer.sample_method_random`
+
+            :meth:`.Buffer.sample_method_all`
+
+        Note:
+            "Concatenation" means ``torch.cat([list of tensors], dim=0)`` for tensors,
+            and ``torch.tensor([list of scalars]).view(batch_size, 1)`` for scalars.
+
+            By default, only major and sub attributes will be concatenated, in order to
+            concatenate custom attributes, specify their names in
+            `additional_concat_custom_attrs`.
+
+        Warnings:
+            Custom attributes must not contain tensors. And only scalar custom
+            attributes can be concatenated, such as ``int``, ``float``,
+            ``bool``.
+
+        Args:
+            batch_size: A hint size of the result sample. actual sample size
+                        depends on your sample method.
+            sample_method: Sample method, could be one of:
+                           ``"random", "random_unique", "all"``,
+                           or a function:
+                           ``func(buffer, batch_size)->(list, result_size)``
+            concatenate: Whether perform concatenation on major, sub and custom
+                         attributes.
+                         If ``True``, for each value in dictionaries of major
+                         attributes. and each value of sub attributes, returns
+                         a concatenated tensor. Custom Attributes specified in
+                         ``additional_concat_custom_attrs`` will also be concatenated.
+                         If ``False``, performs no concatenation.
+            device:      Device to move tensors in the batch to.
+            sample_attrs: If sample_keys is specified, then only specified keys
+                         of the transition object will be sampled. You may use
+                         ``"*"`` as a wildcard to collect remaining
+                         **custom keys** as a ``dict``, you cannot collect major
+                         and sub attributes using this.
+                         Invalid sample attributes will be ignored.
+            additional_concat_custom_attrs: additional **custom keys** needed to be
+                         concatenated, will only work if ``concatenate`` is
+                         ``True``.
+
+        Returns:
+            1. Batch size, Sampled attribute values in the same order as
+               ``sample_keys``.
+
+            2. Sampled attribute values is a tuple. Or ``None`` if sampled
+               batch size is zero (E.g.: if buffer is empty or your sample
+               size is 0 and you are not sampling using the "all" method).
+
+               - For major attributes, result are dictionaries of tensors with
+                 the same keys in your transition objects.
+
+               - For sub attributes, result are tensors.
+
+               - For custom attributes, if they are not in
+                 ``additional_concat_custom_attrs``, then lists, otherwise tensors.
+
+               - For wildcard selector, result is a dictionary containing unused custom
+                 attributes, if they are not in ``additional_concat_custom_attrs``,
+                 the values are lists, otherwise values are tensors.
+        """
+        if isinstance(sample_method, str):
+            if not hasattr(self, "sample_method_" + sample_method):
+                raise RuntimeError(
+                    f"Cannot find specified sample method: {sample_method}"
+                )
+            sample_method = getattr(self, "sample_method_" + sample_method)
+            batch_size, batch = sample_method(batch_size)
+        else:
+            batch_size, batch = sample_method(self, batch_size)
+
+        return (
+            batch_size,
+            self.post_process_batch(
+                batch, device, concatenate, sample_attrs, additional_concat_custom_attrs
+            ),
+        )
+
     def sample_method_random_unique(
         self, batch_size: int,
     ) -> Tuple[int, List[Transition]]:
